@@ -1,0 +1,8 @@
+Petite liste des choses à faire pour coder othello
+
+Fonctions principales :
++ plateau + pions
++ gestion du tour par tour
++ gestion tour du joueur
++ chat
+- historique de la partie (possibilité d'annulation de tour)
