@@ -4,5 +4,6 @@ Fonctions principales :
 + plateau + pions
 + gestion du tour par tour
 + gestion tour du joueur
++ gestion des scores 
 + chat
 - historique de la partie (possibilité d'annulation de tour)
