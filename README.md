@@ -1,4 +1,4 @@
-# DamesAppWeb
+# OthelloAppWeb
 
 Projet Web Application 
 
