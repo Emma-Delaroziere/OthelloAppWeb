@@ -5,14 +5,14 @@
 <body>
 <script src="/socket.io/socket.io.js"></script>
 <script>
+
             var socket = io('http://localhost:8000');
-            socket.on('greeting-from-server', function (message) {
-                document.body.appendChild(
-                    document.createTextNode(message.greeting)
+	    //socket.on(
+            socket.on('log-disp', function (message) {
+		    var form = document.createElement('iframe')
+                    document.body.appendChild(form
+                    //document.createTextNode(message.validation)
                 );
-                socket.emit('greeting-from-client', {
-                    greeting: 'Hello Server'
-                });
             });
 </script>
 </body>
