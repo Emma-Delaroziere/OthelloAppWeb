@@ -1,20 +1,116 @@
 <!DOCTYPE html>
 <html><head> <meta http-equiv="Content-Type" content="text/html; charset = utf-8">
-    <title>Othello</title>
-   
+    <title>Othello</title>   
     <link rel="stylesheet" type="text/css" href="master.css">
+    <script type="text/html" src="index.html"></script>
     <script type="text/javascript" src="MainPanel.js"></script>
     <script type="text/javascript" src="StartPanel.js"></script>
+    <script type="text/javascript" src="LoginForm.js"></script>
     <script type="text/javascript" src="GamePanel.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <!--  ここにチャットも入れる -->
 </head>
 <body class="eeffee" onload="mp_start()">
     <h1>Othello</h1>
     <canvas id="canvas_e" style="background-color: #f7dff3;" width="426" height="426"></canvas><br>
     <a href="method.html" target="method"><button id="method" class="std">How to play?</button></a>
-    <button id="start" class="std" onclick="gp_start()">Start Game</button>
+    <button id="start" class="std" onclick="openForm('form')">Start Game</button>
     <textarea id="ta" type="text" name="ta" cols="40" rows="5" class="std"></textarea><br>
     <button id="first" class="std" onclick="st_start()">Restart</button>
     <button id="finish" class="std" onclick="mp.finish()">End Game</button>
+
+
+<! Popup form pour enregistrer le joueur --> 
+    <div class="form-popup" id="form">
+      <form class="form-container">
+        <h1>Login</h1>
+        <label for="uname"><b>User name</b></label>
+        <input type="text" id="uname" name="uname"><br><br>
+        <button type="submit" class="btn">Log in</button>
+        <button type="submit" class='btn' onclick="closeForm()">Close</button>
+      </form>
+    </div>
+
+<! Popup form pour choisir un salon/créer un nouveau -->
+<div class="form-popup" id="roomForm">
+      <form class="form-container">
+        <label for="room"><b>Room ID</b></label>
+        <input type="text" id="roomID" name="roomID"><br><br>
+        <button type="submit">Join room</button>
+        <button type="submit" onclick="closeForm('roomForm')">Create new room</button>
+      </form>
+    </div>
+
 </body>
 </html>
+
+<script>
+var socket = io('http://localhost:8000');
+
+//socket.emit('start')
+
+
+//gestion de l'authentification joueur
+var token=-1;
+var uname;
+var room = 'test room';
+var color; //w=blanc,b=black
+var turn; //true=joue, false=attend
+
+var form = document.getElementById('form');
+form.addEventListener('submit', function (e) {
+   e.preventDefault();
+   room = document.getElementById('roomID').value;
+   uname = document.getElementById('uname').value;
+   if(token<0){
+      if(uname!=''){
+         socket.emit('login', uname);
+         //attente du token d'identification
+         socket.on('token', function (msg) {
+            token=msg.auth;
+
+         });
+         socket.emit('chatMsg',token);
+         closeForm('form');
+         openForm('roomForm');
+   }}else{
+      if(room!=''){
+         closeForm('roomForm');
+         gp_start();
+         socket.joint(room);
+   }}
+});
+
+
+
+
+//attente du jeu d'un autre joueur
+socket.on('playEm', function (coord) {
+   //fonction pour poser un pion aux coordonnées données (par l'autre joueur);
+   var turn=true;
+});
+
+//tour du joueur
+
+/*socket.emit('play', coord);
+
+*/
+
+//chat
+
+//
+socket.on('chatEm',function(msg){
+   //fonction pour écrire dans le chat
+});
+
+/*
+socket.to('test room').emit('chatMsg',msg);
+
+*/
+    
+
+
+
+var cameo = 'Ceci est un caméo';
+   
+</script>
