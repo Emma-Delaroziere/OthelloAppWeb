@@ -1,4 +1,9 @@
 // StartPanel
+var socket = io('http://localhost:8000');
+/*<script src="/socket.io/socket.io.js"></script>
+var socket = io('http://localhost:8000');
+socket.emit('start')*/
+
 
 function st_start()
 {
