@@ -32,37 +32,57 @@ app.get('',function(req,es){
 });
 */
 
-//sockets
-const io= socketIO(server);
+//identification des joueurs
+
+let users= {};
+
+
+//%%%%%%%%%%%%%%%%%%%%%%%%% Sockets %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+const io=socketIO(server);
 
 io.on('connection',function(socket){
+//Connexion/déconnexion%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    console.log('Utilisateur connecté');
-   socket.join('test room');
-   //socket.emit('ping','ping');
    socket.on('disconnect',function(socket){
-      console.log('Utilisateur déconnecté');
+      console.log('Un utilisateur s\'est déconnecté');
    });
 
-//enregistrement des joueurs
+//Enregistrement des joueurs%%%%%%%%%%%%%%%
    socket.on('login', function(uname){
-      console.log(uname+' s\'est connecté');
-      var val = Math.floor(Math.random() * 10);
-      socket.emit('token',{ auth: val });
+      socket.uname= uname;
+      console.log(uname+' s\'est connecté au socket '+socket.id);
+      console.log(users);
+   });
+//Rejoindre salon%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
+   socket.on('join',function(room){
+   socket.join(room);
+   socket.to(room).emit('chatEm','Bienvenue, '+socket.uname+', dans le salon '+room);
+   console.log('Bienvenue, '+socket.uname+', dans le salon '+room);
+   });
+
+
+//%%%%%%%%%%%%%%%%%%%%%%%%% Chat %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+//quand un joueur envoie un message%%%%%%%%%%%%%
+   socket.on('chatMsg', function(msg){
+      playerName = socket.uname;
+      console.log(playerName);
+      room = Array.from(socket.rooms).filter(roomId => roomId!=socket.id)[0];
+      console.log(room);
+      socket.to(room).emit('chatEm',playerName+' : '+msg);//envoie le message au joueur dans le même salon
+      console.log(playerName+' : '+msg);
    });
 
 
 
-//chat
+//%%%%%%%%%%%%%%%%%%%%%%%%% Pose de pion %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //quand un joueur pose un pion
-   socket.on('play', function(coord){
+ /*  socket.on('play', function(coord){
       socket.to('test room').emit('playEm',coord);//envoie les données de jeu à l'autre joueur pour mettre à jour son plateau
    });
+*/
 
-//quand un joueur envoie un message
-   socket.on('chatMsg', function(msg){
-      socket.to('test room').emit('chatEm',msg);//envoie le message au joueur
-      console.log(msg);
-   });
 });
-
 
