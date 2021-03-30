@@ -13,75 +13,132 @@
 <body class="eeffee" onload="mp_start()">
     <h1>Othello</h1>
     <canvas id="canvas_e" style="background-color: #f7dff3;" width="426" height="426"></canvas><br>
+<div id='startMenu'>
     <a href="method.html" target="method"><button id="method" class="std">How to play?</button></a>
     <button id="start" class="std" onclick="openForm('form')">Start Game</button>
+</div>
+
+<div id='gameButtons' style="display:none;"> 
     <textarea id="ta" type="text" name="ta" cols="40" rows="5" class="std"></textarea><br>
     <button id="first" class="std" onclick="st_start()">Restart</button>
     <button id="finish" class="std" onclick="mp.finish()">End Game</button>
+</div>
 
 
 <! Popup form pour enregistrer le joueur --> 
-    <div class="form-popup" id="form">
+    <div class="form-popup" id="form" style="display:none">
       <form class="form-container">
         <h1>Login</h1>
         <label for="uname"><b>User name</b></label>
         <input type="text" id="uname" name="uname"><br><br>
         <button type="submit" class="btn">Log in</button>
-        <button type="submit" class='btn' onclick="closeForm()">Close</button>
+        <button type="submit" class='btn' onclick="closeForm('uname')">Close</button>
       </form>
     </div>
+
 
 <! Popup form pour choisir un salon/créer un nouveau -->
-<div class="form-popup" id="roomForm">
-      <form class="form-container">
+<div class="form-popup" id="roomForm" style="display:none">
+      <form class="form-container" id='rform'>
         <label for="room"><b>Room ID</b></label>
         <input type="text" id="roomID" name="roomID"><br><br>
-        <button type="submit">Join room</button>
-        <button type="submit" onclick="closeForm('roomForm')">Create new room</button>
+        <button type="submit"class='btn'>Join room</button>
+        <button type="submit" class='btn onclick="closeForm('roomID')">Create new room</button>
       </form>
-    </div>
+</div>
+
+<! Fenêtre de chat -->
+
+<div id='messageBox' style='display:none;' scrolling='yes' width=100 height=300>Chat<br></div><br>
+<div id='messageForm' style='display:none'>
+        <label for="Msg"><b>Message</b></label>
+        <input type="text" id="message" name="message"><br><br>
+        <button onclick='SendMessage()'>Post</button>
+</div>
+
+<div id='messageBox' style='display:none;' scrolling='yes' width=100 height=300>Chat<br></div><br>
+
 
 </body>
+
 </html>
 
 <script>
+
 var socket = io('http://localhost:8000');
 
-//socket.emit('start')
+
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Connexion joueur %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-//gestion de l'authentification joueur
-var token=-1;
-var uname;
-var room = 'test room';
-var color; //w=blanc,b=black
-var turn; //true=joue, false=attend
+let uname; //nom du joueur
+//var room = 'test room';
+let color; //w=blanc,b=black
+let turn; //w,b
+let form = document.getElementById('form');
+let roomForm = document.getElementById('roomForm');
 
-var form = document.getElementById('form');
 form.addEventListener('submit', function (e) {
    e.preventDefault();
-   room = document.getElementById('roomID').value;
-   uname = document.getElementById('uname').value;
-   if(token<0){
-      if(uname!=''){
-         socket.emit('login', uname);
-         //attente du token d'identification
-         socket.on('token', function (msg) {
-            token=msg.auth;
 
-         });
-         socket.emit('chatMsg',token);
+   uname = document.getElementById('uname').value;
+   if(uname!=''){
+         socket.emit('login', uname);
          closeForm('form');
          openForm('roomForm');
-   }}else{
-      if(room!=''){
-         closeForm('roomForm');
-         gp_start();
-         socket.joint(room);
-   }}
+      }
 });
 
 
+
+//joindre un salon
+roomForm.addEventListener('submit', function (e) {
+   e.preventDefault();
+   room = document.getElementById('roomID').value;
+   if(room!=''){
+         gp_start();
+         socket.emit('join',room);
+         closeForm('roomForm');
+         document.getElementById('roomForm').style.display = "none";
+         document.getElementById('messageBox').style.display = "";
+         document.getElementById('messageForm').style.display = "";
+         document.getElementById('gameButton').style.display = "";
+      }
+});
+
+
+
+//%%%%%%%%%%%%%%%%%%%%%%%%% Chat %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+//envoi des messages au serveur et affichage dans le chat de l'envoyeur
+var chatMsg = document.getElementById('message');
+
+function SendMessage() {
+   let msg = document.getElementById('message').value;
+   socket.emit('chatMsg', msg);
+   document.getElementById("message").value = '';
+   let br = document.createElement('br')
+   let messages = document.getElementById('messageBox');
+   let line = document.createTextNode('Me : '+msg);
+   messages.appendChild(line);
+   messages.appendChild(br);
+}
+
+
+
+//affiche les messages dans le chat des autres joueurs
+
+socket.on('chatEm',function(msg){
+   let messages = document.getElementById('messageBox');
+   let br = document.createElement('br')
+   let line = document.createTextNode(msg);
+   //line.innerhtml=msg
+   messages.appendChild(line);
+   messages.appendChild(br);
+});
+//socket.emit('chatMsg',{room : room, message : msg);
+
+//%%%%%%%%%%%%%%%%%%%%%%%%% Jouer %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 //attente du jeu d'un autre joueur
@@ -92,25 +149,53 @@ socket.on('playEm', function (coord) {
 
 //tour du joueur
 
-/*socket.emit('play', coord);
+//socket.emit('play', coord);
 
-*/
 
 //chat
 
-//
-socket.on('chatEm',function(msg){
-   //fonction pour écrire dans le chat
-});
 
-/*
-socket.to('test room').emit('chatMsg',msg);
 
+
+//socket.emit('chatMsg',msg);
+
+
+/*GamePanel.prototype.mouseClick = function(event)
+{
+    let x_base  = mp.canvas.offsetLeft;
+    let y_base  = mp.canvas.offsetTop;
+    let x       = event.pageX - x_base;
+    let y       = event.pageY - y_base;
+
+    let k = new Array(-1, -1);
+    for (let i1 = 0; i1 < 8; i1++) {
+        if (y >= gp.gap+i1*(gp.gap+gp.sz) && y <= (i1+1)*(gp.gap+gp.sz)) {
+            k[0] = i1;
+            break;
+        }
+    }
+    for (let i1 = 0; i1 < 8; i1++) {
+        if (x >= gp.gap+i1*(gp.gap+gp.sz) && x <= (i1+1)*(gp.gap+gp.sz)) {
+            k[1] = i1;
+            break;
+        }
+    }
+    gp.r_check(k);
+
+    if (gp.n[8] <= 0) {
+        document.getElementById('ta').style.color = "red";
+        let str1 = "Turn ";
+        let str2 = ", you cannot put your piece there. \n Please choose another place."
+        if (gp.bw > 0)
+            document.getElementById('ta').innerHTML = str1 + "Black" + str2;
+        else 
+            document.getElementById('ta').innerHTML = str1 + "White" + str2;
+    }
+    else
+        gp.set(k);
+
+    if(gp.isLegal(x,y,color,turn)){socket.emit('play',{x:x,y:y,c:color});}
+}
 */
-    
 
-
-
-var cameo = 'Ceci est un caméo';
-   
 </script>
