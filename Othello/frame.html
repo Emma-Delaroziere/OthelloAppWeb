@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html><head> <meta http-equiv="Content-Type" content="text/html; charset = utf-8">
+    <title>Othello</title>   
+    <link rel="stylesheet" type="text/css" href="master.css">
+    <script type="text/html" src="index.html"></script>
+    <script type="text/javascript" src="MainPanel.js"></script>
+    <script type="text/javascript" src="StartPanel.js"></script>
+    <script type="text/javascript" src="LoginForm.js"></script>
+    <script type="text/javascript" src="GamePanel.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="eeffee" onload="mp_start()">
+    <h1>Othello</h1>
+    <canvas id="canvas_e" style="background-color: #f7dff3;" width="426" height="426"></canvas><br>
+<div id='startMenu'>
+    <a href="https://en.wikipedia.org/wiki/Reversi" target="method"><button id="method" class="std">How to play?</button></a>
+    <button id="start" class="std" onclick="openForm('form')">Start Game</button>
+</div>
+
+
+<!--- Popup form pour enregistrer le joueur --> 
+    <div class="form-popup" id="form" style="display:none">
+      <form class="form-container">
+        <h1>Login</h1>
+        <label for="uname"><b>User name</b></label>
+        <input type="text" id="uname" name="uname"><br><br>
+        <button type="submit" class="btn">Log in</button>
+        <button type="submit" class='btn' onclick="closeForm('uname')">Close</button>
+      </form>
+    </div>
+
+
+<!--- Popup form pour choisir un salon/créer un nouveau -->
+<div class="form-popup" id="roomForm" style="display:none">
+      <form class="form-container" id='rform'>
+        <label for="room"><b>Room ID</b></label>
+        <input type="text" id="roomID" name="roomID"><br><br>
+        <button type="submit"class='btn'>Join room</button>
+      </form>
+</div>
+
+<!-- Fenêtre de chat -->
+
+
+<div id='messageForm' style='display:none'>
+        <label for="Msg"><b>Message</b></label>
+        <input type="text" id="message" name="message"><br><br>
+        <button onclick='SendMessage()'>Post</button>
+</div><br>
+<div id='messageBox' style='display:none;' scrolling='yes' width=100 height=300>Chat<br></div>
+
+
+
+</body>
+
+</html>
+
+<script>
+
+var socket = io('http://localhost:8000');
+
+
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Connexion joueur %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+let uname; //nom du joueur
+//var room = 'test room';
+let color; //w=blanc,b=black
+let turn; //w,b
+let form = document.getElementById('form');
+let roomForm = document.getElementById('roomForm');
+
+form.addEventListener('submit', function (e) {
+   e.preventDefault();
+
+   uname = document.getElementById('uname').value;
+   if(uname!=''){
+         socket.emit('login', uname);
+         closeForm('form');
+         openForm('roomForm');
+      }
+});
+
+
+
+//joindre un salon
+roomForm.addEventListener('submit', function (e) {
+   e.preventDefault();
+   room = document.getElementById('roomID').value;
+   if(room!=''){
+         socket.emit('join',room);
+         closeForm('roomForm');
+         document.getElementById('roomForm').style.display = "none";
+      }
+});
+
+
+
+//%%%%%%%%%%%%%%%%%%%%%%%%% Chat %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+//envoi des messages au serveur et affichage dans le chat de l'envoyeur
+var chatMsg = document.getElementById('message');
+
+function SendMessage() {
+   let msg = document.getElementById('message').value;
+   socket.emit('chatMsg', msg);
+   document.getElementById("message").value = '';
+   let br = document.createElement('br')
+   let messages = document.getElementById('messageBox');
+   let line = document.createTextNode('Me : '+msg);
+   messages.appendChild(line);
+   messages.appendChild(br);
+}
+
+
+
+//affiche les messages dans le chat des autres joueurs
+
+socket.on('chatEm',function(msg){
+   let messages = document.getElementById('messageBox');
+   let br = document.createElement('br')
+   let line = document.createTextNode(msg);
+   //line.innerhtml=msg
+   messages.appendChild(line);
+   messages.appendChild(br);
+});
+//socket.emit('chatMsg',{room : room, message : msg);
+
+//%%%%%%%%%%%%%%%%%%%%%%%%% Jouer %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+//attente du jeu d'un autre joueur
+socket.on('playEm', function (coord) {
+    gp.reverse(coord);
+    gp.bw = -gp.bw;
+});
+
+
+socket.on('big-announcement', function(){
+    gp_start();
+    document.getElementById('messageBox').style.display = "";
+    document.getElementById('messageForm').style.display = "";
+    document.getElementById('gameButton').style.display = "";
+});
+//tour du joueur
+/*
+socket.on('Victory', function(color){
+      io.in(room).emit('chatMsg',color);//envoie le message au joueur dans le même salon
+*/
+
+//socket.emit('play', coord);
+
+socket.on('ping',function(){
+    socket.emit("pong","pong");
+    gp.bwp = -gp.bwp;
+    //alert(gp.bwp);
+});
+
+
+
+
+//chat
+
+
+
+
+//socket.emit('chatMsg',msg);
+
+
+
+</script>
