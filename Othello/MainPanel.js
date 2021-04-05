@@ -26,7 +26,8 @@ MainPanel.prototype.finish = function()
     //no button
     document.getElementById('method').style.display = "none";
     document.getElementById('start').style.display = "none";
-
+    document.getElementById('gameButtons').style.display='none';
+    document.getElementById('chat').style.display='none';
 
     mp.ctx.lineWidth = 2;
     mp.ctx.font = "60px Monotype Corsiva";

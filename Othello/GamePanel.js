@@ -2,27 +2,32 @@
 
 gp = null;
 
-function gp_start()
+function gp_start(value)
 {
-    gp = new GamePanel();
+    gp = new GamePanel(value);
 
     gp.draw();
     mp.canvas.addEventListener("click", gp.mouseClick);
     // to not show the butoon of the home page
     document.getElementById('method').style.display = "none";
     document.getElementById('start').style.display = "none";
+    document.getElementById('gameButtons').style.display='';
+        if(gp.bw==gp.bwp){
+       let ta = document.getElementById('ta');
+       ta.value='Your turn (click to skip if you can\'t play)';
+    }else{
+       let ta = document.getElementById('ta');
+       ta.value='Enemy turn';       
+    }
 }
 
-function GamePanel()
+function GamePanel(value)
 {
     this.sz= 51;  // size of each cell
     this.gap =2;   // between cell
     this.bw = 1;   // black:1, white:-1
-    this.bwp = -1;
+    this.bwp = value ;
 
-    /*******************************************
-    **************** PROBLEM ICI ?? ************
-    *********************************************/
     this.st = new Array(); //board structure
     this.st[0] = new Array(0, 0, 0, 0, 0, 0, 0, 0);
     this.st[1] = new Array(0, 0, 0, 0, 0, 0, 0, 0);
@@ -37,15 +42,10 @@ function GamePanel()
 }
 
 GamePanel.prototype.mouseClick = function(event)
-{   /*******************************************
-    ***************** PROBLEM ICI ?? ************
-    ***********************************************/
-    //  break the player opponent
-    /*if (this.bw != bwp) {
+{   
+    if (gp.bwp != gp.bw){
         return
-    }*/
-
-
+    }
     let x_base  = mp.canvas.offsetLeft;  // the x coordinate of top left canvas
     let y_base  = mp.canvas.offsetTop;   // the y coordinate of top left canvas
     let x       = event.pageX - x_base;  // the x coordinate of the clicked place
@@ -65,18 +65,55 @@ GamePanel.prototype.mouseClick = function(event)
             break;
         }
     }
+    // check SKIP
+    let sw = false;
+    let test = new Array(-1, -1);
+    for (let i1 = 0; i1 < 8 && !sw; i1++) {
+        for (let i2 = 0; i2 < 8 && !sw; i2++) {
+            test[0] = i1;
+            test[1] = i2;
+            gp.r_check(test);
+            if (gp.n[8] > 0) 
+                sw = true;
+        }
+    }
+    if(!sw){
+        socket.emit("skip", "skip");
+        gp.bw = - gp.bw;
+            if(gp.bw==gp.bwp){
+       let ta = document.getElementById('ta');
+       ta.value='Your turn (click to skip if you can\'t play)';
+    }else{
+       let ta = document.getElementById('ta');
+       ta.value='Enemy turn';       
+    }
+        return;
+    }
+
     // to check if there is any pieces to reverse
     gp.r_check(k);
     // if there is
     if (gp.n[8] >0) {        
         gp.set(k);
         // we emit that coordinate to other player
-        socket.emit("play",k);
+        socket.emit("play",gp.st);
+    let counter = gp.countBW();
+    let black = document.getElementById('black');
+    let white = document.getElementById('white');
+    black.value=counter[0];
+    white.value=counter[1];
+            if(gp.bw==gp.bwp){
+       let ta = document.getElementById('ta');
+       ta.value='Your turn (click to skip if you can\'t play)';
+    }else{
+       let ta = document.getElementById('ta');
+       ta.value='Enemy turn';       
+    }
     }
 }
 
 GamePanel.prototype.r_check = function(k)
-{   // 8 direction to be searched
+{   // 8 directions to be searched
     let dir = new Array();
     dir[0] = new Array(-1, 0);
     dir[1] = new Array(-1, 1);
@@ -160,7 +197,8 @@ GamePanel.prototype.reverse = function(k)
     }
     gp.st[k[0]][k[1]] = gp.bw;
     gp.draw();
-    //gp.checkwin();
+
+    gp.checkwin(false);
 }
 
 GamePanel.prototype.draw = function()
@@ -196,38 +234,61 @@ GamePanel.prototype.draw = function()
         }
     }
 }
-/*
-GamePanel.prototype.checkwin = function()
-{let black = 0;
+
+/*******************************************
+***************** PROBLEM ICI ?? ************
+***********************************************/
+GamePanel.prototype.checkwin = function(flag)  // flag : si le tour a été sauté deux fois de suite -> TRUE
+{let black = 0;  // compteur de black 
 let white = 0;
+let total = 0;
 for (let i1 = 0; i1<8; i1++){
-    for (let i2 = 0; i2<8; i2++){}
-        if (gp.st[i1][i2]!=0){
+    for (let i2 = 0; i2<8; i2++){
+        if (gp.st[i1][i2]!=0){   // gp.st = tableau des pions de plateau 
             total ++;
-            if (gp.st[i1][i2]<0)
-                black++;
-            else 
-                white++;
+            if (gp.st[i1][i2]>0){ // black :1
+                black++;}
+            else{ 
+                white++;}}    // black : -1
         }
     }
-
+    
     if (total == white){
-        socket.emit('Victory','White')
+        socket.emit('Victory','White Win!')
+        return
     }
     if (total == black){
-        socket.emit('Victory','Black')
+        socket.emit('Victory','Black Win !')
+        return
     }
-    else if (total == 64){
+    if (flag || total==64){ // si skip*2, ou plateau plein
         if (black == white){
             socket.emit('Victory', 'Draw')
         }
 
-        if (black > white){
-            socket.emit('Victory','Black')
+        else if (black > white){
+            socket.emit('Victory','Black Win !')
         }
 
-        if (white > black){
-            socket.emit('Victory','White')
+        else if (white > black){
+            socket.emit('Victory','White Win !')
         }
     }
-}*/
+}
+
+GamePanel.prototype.countBW = function()
+{let black = 0;  // compteur de black 
+let white = 0;
+let total = 0;
+for (let i1 = 0; i1<8; i1++){
+    for (let i2 = 0; i2<8; i2++){
+        if (gp.st[i1][i2]!=0){   // gp.st = tableau des pions de plateau 
+            total ++;
+            if (gp.st[i1][i2]>0){ // black :1
+                black++;}
+            else{ 
+                white++;}}    // black : -1
+        }
+    }
+ return([black,white,total]);
+}

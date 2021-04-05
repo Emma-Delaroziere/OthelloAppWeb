@@ -11,12 +11,34 @@
 </head>
 <body class="eeffee" onload="mp_start()">
     <h1>Othello</h1>
-    <canvas id="canvas_e" style="background-color: #f7dff3;" width="426" height="426"></canvas><br>
-<div id='startMenu'>
+
+<div id='table'>
+<div id='emptycolumn' class='column'>
+<div id='playercolor'> </div><br>
+</div>
+
+<div id='startMenu' class='column'>
+<canvas id="canvas_e" style="background-color: #f7dff3;" width="426" height="426"></canvas><br>
     <a href="https://en.wikipedia.org/wiki/Reversi" target="method"><button id="method" class="std">How to play?</button></a>
     <button id="start" class="std" onclick="openForm('form')">Start Game</button>
 </div>
 
+<!-- Fenêtre de chat -->
+
+<div id='chat' class='column'>
+
+
+<div id='messageBox' style='display:none;' scrolling='yes'>
+Chat<br>
+<textarea id="chatMessages" type="text" name="chatMessages" cols="40" rows="20" class="std" style='color:black;' readonly></textarea><br>
+<div id='messageForm' style='display:none'>
+        <label for="Msg"><b>Message</b></label>
+        <input type="text" id="message" name="message"><br><br>
+        <button onclick='SendMessage()'>Post</button>
+</div><br> 
+</div>
+
+</div>
 
 <!--- Popup form pour enregistrer le joueur --> 
     <div class="form-popup" id="form" style="display:none">
@@ -39,16 +61,10 @@
       </form>
 </div>
 
-<!-- Fenêtre de chat -->
-
-
-<div id='messageForm' style='display:none'>
-        <label for="Msg"><b>Message</b></label>
-        <input type="text" id="message" name="message"><br><br>
-        <button onclick='SendMessage()'>Post</button>
-</div><br>
-<div id='messageBox' style='display:none;' scrolling='yes' width=100 height=300>Chat<br></div>
-
+<div id='gameButtons' style="display:none;"> 
+    <textarea id="ta" type="text" name="ta" cols="40" rows="1" class="std" style='color:black;' readonly></textarea><br>
+    <button id="finish" class="std" onclick="finish()">End Game</button>
+</div>
 
 
 </body>
@@ -105,11 +121,10 @@ function SendMessage() {
    let msg = document.getElementById('message').value;
    socket.emit('chatMsg', msg);
    document.getElementById("message").value = '';
-   let br = document.createElement('br')
-   let messages = document.getElementById('messageBox');
-   let line = document.createTextNode('Me : '+msg);
-   messages.appendChild(line);
-   messages.appendChild(br);
+   let messages = document.getElementById('chatMessages');
+   let content = messages.value;
+   content = content+'\r\n'+ 'Me: '+msg;
+   messages.value= content;
 }
 
 
@@ -117,12 +132,10 @@ function SendMessage() {
 //affiche les messages dans le chat des autres joueurs
 
 socket.on('chatEm',function(msg){
-   let messages = document.getElementById('messageBox');
-   let br = document.createElement('br')
-   let line = document.createTextNode(msg);
-   //line.innerhtml=msg
-   messages.appendChild(line);
-   messages.appendChild(br);
+   let messages = document.getElementById('chatMessages');
+   let content = messages.value;
+   content = content+'\r\n'+msg;
+   messages.value= content;
 });
 //socket.emit('chatMsg',{room : room, message : msg);
 
@@ -130,41 +143,86 @@ socket.on('chatEm',function(msg){
 
 
 //attente du jeu d'un autre joueur
-socket.on('playEm', function (coord) {
-    gp.reverse(coord);
+
+socket.on('playEm', function (tab) {
+    gp.st = tab;
+    gp.draw();
     gp.bw = -gp.bw;
+    if(gp.bw==gp.bwp){
+       let ta = document.getElementById('ta');
+       ta.value='Your turn (click to skip if you can\'t play)';
+    }else{
+       let ta = document.getElementById('ta');
+       ta.value='Enemy turn';       
+    }
 });
 
 
-socket.on('big-announcement', function(){
-    gp_start();
+socket.on('change-mode', function(value){
+    gp_start(value);
     document.getElementById('messageBox').style.display = "";
     document.getElementById('messageForm').style.display = "";
     document.getElementById('gameButton').style.display = "";
 });
 //tour du joueur
-/*
-socket.on('Victory', function(color){
-      io.in(room).emit('chatMsg',color);//envoie le message au joueur dans le même salon
-*/
 
-//socket.emit('play', coord);
-
-socket.on('ping',function(){
-    socket.emit("pong","pong");
-    gp.bwp = -gp.bwp;
-    //alert(gp.bwp);
+socket.on('big-announcement', function(color){
+   let ta = document.getElementById('ta');
+   ta.value= color;
 });
 
 
 
 
-//chat
+socket.on('ping',function(value){
+    socket.emit("pong","pong");
+    gp_start(value) ;
+    document.getElementById('messageBox').style.display = "";
+    document.getElementById('messageForm').style.display = "";
+    document.getElementById('gameButton').style.display = "";
+    //alert(gp.bwp);
+});
+
+
+socket.on('skipEm', function(){
+    // 2éme tour sauté
+    gp.bw=-gp.bw;
+            if(gp.bw==gp.bwp){
+       let ta = document.getElementById('ta');
+       ta.value='Your turn (click to skip if you can\'t play)';
+    }else{
+       let ta = document.getElementById('ta');
+       ta.value='Enemy turn';       
+    }
+    let sw = false;
+    let test = new Array(-1, -1);
+    for (let i1 = 0; i1 < 8 && !sw; i1++) {
+        for (let i2 = 0; i2 < 8 && !sw; i2++) {
+            test[0] = i1;
+            test[1] = i2;
+            gp.r_check(test);
+            if (gp.n[8] > 0) 
+                sw = true;
+        }
+    }
+    if(!sw){
+        gp.checkwin(true);
+        return;
+    }  
+    // si pas de saut, on repend le fonctionnement normal
+});
+
+socket.on('end',function(){
+   mp.finish();
+})
 
 
 
+function finish(){
+   mp.finish();
+   socket.emit('finish','finish');
+}
 
-//socket.emit('chatMsg',msg);
 
 
 

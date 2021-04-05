@@ -6,7 +6,6 @@ const socketIO = require('socket.io')
 const fs = require('fs');
 var path = require('path');
 const readline = require('readline');
-const db = require('sqlite3');
 
 
 
@@ -59,9 +58,10 @@ io.on('connection',function(socket){
 //Rejoindre salon%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
    socket.on('join',function(room){
       socket.join(room);
-      socket.to(room).emit('chatEm','Bienvenue, '+socket.uname+', dans le salon '+room);
+      io.in(room).emit('chatEm','Bienvenue, '+socket.uname+', dans le salon '+room);
+      socket.to(room).emit('chatEm','You are player black');
       console.log('Bienvenue, '+socket.uname+', dans le salon '+room);
-      socket.to(room).emit("ping","ping");
+      socket.to(room).emit("ping",1);
     });
 
 
@@ -77,24 +77,45 @@ io.on('connection',function(socket){
       console.log(playerName+' : '+msg);
    });
    
-   
 
    socket.on('pong',function(){
       room = Array.from(socket.rooms).filter(roomId => roomId!=socket.id)[0];
-      io.in(room).emit('big-announcement','hi');
+      socket.to(room).emit('change-mode',-1);
+      socket.to(room).emit('chatEm','You are player white');
       console.log("pong");
    });
 
 
+
 //%%%%%%%%%%%%%%%%%%%%%%%%% Pose de pion %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //quand un joueur pose un pion
-     socket.on('play', function(coord){
+     socket.on('play', function(tab){
         room = Array.from(socket.rooms).filter(roomId => roomId!=socket.id)[0];
-      socket.to(room).emit('playEm',coord);//envoie les données de jeu à l'autre joueur pour mettre à jour son plateau
-      console.log(coord);
+         socket.to(room).emit('playEm',tab);//envoie les données de jeu à l'autre joueur pour mettre à jour son plateau
+         console.log(tab);
    });
 
+
+   socket.on('skip', function(){
+      room = Array.from(socket.rooms).filter(roomId => roomId!=socket.id)[0];
+       socket.to(room).emit('skipEm', 'skip');
+       console.log('skip');
+ });
+
+
+   socket.on('Victory', function(color){
+      room = Array.from(socket.rooms).filter(roomId => roomId!=socket.id)[0];
+      io.in(room).emit('big-announcement', color); // envoie le message de Victoire au chat
+      console.log('win');
+ });
+
+   socket.on('finish', function(color){
+      room = Array.from(socket.rooms).filter(roomId => roomId!=socket.id)[0];
+      socket.to(room).emit('end', 'end'); //end game for everyone
+      console.log('finish');
+ });
+
+
+
+
 });
-
-
-
